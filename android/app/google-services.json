@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "654234056126",
+    "project_id": "walletflex-4d9d2",
+    "storage_bucket": "walletflex-4d9d2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654234056126:android:b9a08f1aeabe59e537b5ef",
+        "android_client_info": {
+          "package_name": "com.example.wallet_flex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCMCWSJgb-NFHS411goBT0P2cNxSDnDXc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

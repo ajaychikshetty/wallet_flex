@@ -1,0 +1,159 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+
+class AddExpensePage extends StatefulWidget {
+  @override
+  _AddExpensePageState createState() => _AddExpensePageState();
+}
+
+class _AddExpensePageState extends State<AddExpensePage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Add Expense'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(screenWidth * 0.05),
+        child: Column(
+          children: [
+            TextField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                hintText: 'Enter expense amount',
+              ),
+            ),
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Description',
+                hintText: 'Enter expense description',
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.02),
+            Row(
+              children: [
+                Text(
+                  "Selected Date: ${DateFormat('EEE, dd MMM').format(_selectedDate)}",
+                ),
+                IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  onPressed: () => _selectDate(context),
+                ),
+              ],
+            ),
+            SizedBox(height: screenHeight * 0.02),
+            ElevatedButton(
+              onPressed: () async {
+                final String userId = _auth.currentUser!.uid;
+                final String formattedDate =
+                    DateFormat('EEE, dd MMM').format(_selectedDate);
+                final double amount =
+                    double.tryParse(_amountController.text) ?? 0;
+                final String description = _descriptionController.text;
+
+                try {
+                  // Reference to the user's expenses, transactions, and balance subcollections
+                  final CollectionReference expensesRef = _firestore
+                      .collection('user_details')
+                      .doc(userId)
+                      .collection('expenses');
+
+                  final CollectionReference transactionsRef = _firestore
+                      .collection('user_details')
+                      .doc(userId)
+                      .collection('transactions');
+
+                  final CollectionReference balanceRef = _firestore
+                      .collection('user_details')
+                      .doc(userId)
+                      .collection('balance');
+
+                  // Add expense record
+                  await expensesRef.add({
+                    'amount': amount,
+                    'description': description,
+                    'date': formattedDate,
+                    'timestamp': DateTime.now().toIso8601String(),
+                    'type': 'expense',
+                  });
+
+                  // Add transaction record
+                  await transactionsRef.add({
+                    'amount': amount,
+                    'date': formattedDate,
+                    'timestamp': DateTime.now().toIso8601String(),
+                    'tname': description,
+                    'type': 'expense',
+                  });
+
+                  // Update balance
+                  final QuerySnapshot balanceSnapshot = await balanceRef
+                      .where('date', isEqualTo: formattedDate)
+                      .get();
+
+                  if (balanceSnapshot.docs.isNotEmpty) {
+                    final DocumentSnapshot balanceDoc =
+                        balanceSnapshot.docs.first;
+                    final double existingBalance = balanceDoc['amount'];
+                    final double newBalance = existingBalance - amount;
+
+                    await balanceRef
+                        .doc(balanceDoc.id)
+                        .update({'amount': newBalance});
+                  } else {
+                    // If no balance record exists for the selected date, handle it
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(
+                              'No balance record found for the selected date')),
+                    );
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Expense added, transaction recorded, and balance updated successfully')),
+                  );
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to add expense: $e')),
+                  );
+                }
+              },
+              child: Text('Add Expense'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
