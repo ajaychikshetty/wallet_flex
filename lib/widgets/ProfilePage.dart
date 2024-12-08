@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
@@ -28,24 +30,39 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchUserData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final User? currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('user_details')
-          .doc(currentUser.uid)
-          .get();
-      final userData = userDoc.data() as Map<String, dynamic>;
-
+    try {
       setState(() {
-        _nameController.text = userData['name'] ?? '';
-        _emailController.text = userData['email'] ?? '';
-        _phoneController.text = userData['phone'] ?? '';
-        _ageController.text = userData['age']?.toString() ?? '';
-        _profileImageUrl = userData['profileUrl'] ?? '';
+        _isLoading = true;
+      });
+
+      final User? currentUser = _auth.currentUser;
+
+      if (currentUser != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('user_details')
+            .doc(currentUser.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>?;
+
+          setState(() {
+            _nameController.text = userData?['name'] ?? '';
+            _emailController.text = userData?['email'] ?? '';
+            _phoneController.text = userData?['phone'] ?? '';
+            _ageController.text = userData?['age']?.toString() ?? '';
+            _profileImageUrl = userData?['profileUrl'] ?? '';
+          });
+        } else {
+          print('Error: User document does not exist.');
+        }
+      } else {
+        print('Error: No user is currently signed in.');
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+    } finally {
+      setState(() {
         _isLoading = false;
       });
     }
@@ -73,21 +90,21 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Select Image Source'),
+          title: const Text('Select Image Source'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
-                leading: Icon(Icons.camera_alt),
-                title: Text('Camera'),
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
                 onTap: () async {
                   Navigator.of(context)
                       .pop(await _picker.pickImage(source: ImageSource.camera));
                 },
               ),
               ListTile(
-                leading: Icon(Icons.image),
-                title: Text('Gallery'),
+                leading: const Icon(Icons.image),
+                title: const Text('Gallery'),
                 onTap: () async {
                   Navigator.of(context).pop(
                       await _picker.pickImage(source: ImageSource.gallery));
@@ -123,9 +140,9 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
                   GestureDetector(
@@ -143,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   _profileImageUrl,
                                   fit: BoxFit.cover,
                                 )
-                              : Icon(Icons.person, size: 50),
+                              : const Icon(Icons.person, size: 50),
                         ),
                       ),
                       Positioned(
@@ -152,11 +169,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Container(
                           width: 30,
                           height: 30,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.blue,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.edit,
                             color: Colors.white,
                             size: 20,
@@ -165,43 +182,43 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ]),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _nameController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Name',
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _emailController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Email',
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _phoneController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Phone',
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _ageController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Age',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _updateUserData,
-                    child: Text('Update'),
+                    child: const Text('Update'),
                   ),
                 ],
               ),

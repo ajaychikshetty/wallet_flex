@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class AddBalancePage extends StatefulWidget {
+  const AddBalancePage({super.key});
+
   @override
   _AddBalancePageState createState() => _AddBalancePageState();
 }
@@ -35,7 +37,7 @@ class _AddBalancePageState extends State<AddBalancePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Balance'),
+        title: const Text('Add Balance'),
       ),
       body: Padding(
         padding: EdgeInsets.all(screenWidth * 0.05),
@@ -47,7 +49,7 @@ class _AddBalancePageState extends State<AddBalancePage> {
                   "Selected Date: ${DateFormat('EEE, dd MMM').format(_selectedDate)}",
                 ),
                 IconButton(
-                  icon: Icon(Icons.calendar_today),
+                  icon: const Icon(Icons.calendar_today),
                   onPressed: () => _selectDate(context),
                 ),
               ],
@@ -55,7 +57,7 @@ class _AddBalancePageState extends State<AddBalancePage> {
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Amount',
                 hintText: 'Enter balance amount',
               ),
@@ -115,7 +117,7 @@ class _AddBalancePageState extends State<AddBalancePage> {
                   });
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Balance recorded successfully')),
+                    const SnackBar(content: Text('Balance recorded successfully')),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +126,7 @@ class _AddBalancePageState extends State<AddBalancePage> {
                 }
                 Navigator.of(context).pop();
               },
-              child: Text('Add Balance'),
+              child: const Text('Add Balance'),
             ),
           ],
         ),

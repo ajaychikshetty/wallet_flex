@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'walletflex-4d9d2.appspot.com',
     measurementId: 'G-Y71TWL2HP4',
   );
+
 }

@@ -5,12 +5,11 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
 
 class TransactionsPage extends StatefulWidget {
   final DateTime selectedDate;
 
-  TransactionsPage({required this.selectedDate});
+  const TransactionsPage({super.key, required this.selectedDate});
 
   @override
   _TransactionsPageState createState() => _TransactionsPageState();
@@ -38,7 +37,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
     if (querySnapshot.docs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No transactions found to export.')),
+        const SnackBar(content: Text('No transactions found to export.')),
       );
       return;
     }
@@ -123,7 +122,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Transaction Receipt'),
+          title: const Text('Transaction Receipt'),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -144,7 +143,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
           actions: [
             TextButton(
-              child: Text('Close'),
+              child: const Text('Close'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -155,73 +154,73 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Future<void> _showGraphDialog() async {
-    final String userId = _auth.currentUser!.uid;
+  // Future<void> _showGraphDialog() async {
+  //   final String userId = _auth.currentUser!.uid;
 
-    final balanceSnapshot = await _firestore
-        .collection('user_details')
-        .doc(userId)
-        .collection('balance')
-        .orderBy('date')
-        .get();
+  //   final balanceSnapshot = await _firestore
+  //       .collection('user_details')
+  //       .doc(userId)
+  //       .collection('balance')
+  //       .orderBy('date')
+  //       .get();
 
-    final expenseSnapshot = await _firestore
-        .collection('user_details')
-        .doc(userId)
-        .collection('expenses')
-        .orderBy('date')
-        .get();
+  //   final expenseSnapshot = await _firestore
+  //       .collection('user_details')
+  //       .doc(userId)
+  //       .collection('expenses')
+  //       .orderBy('date')
+  //       .get();
 
-    final balanceData = balanceSnapshot.docs.map((doc) {
-      final date = DateFormat('EEE, dd MMM').parse(doc['date']);
-      return new charts.Series(
-        id: 'Balance',
-        domainFn: (dynamic datum, _) => datum['date'] as DateTime,
-        measureFn: (dynamic datum, _) => datum['amount'] as double,
-        data: [
-          {'date': date, 'amount': doc['amount'].toDouble()}
-        ],
-        colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-      );
-    }).toList();
+  //   final balanceData = balanceSnapshot.docs.map((doc) {
+  //     final date = DateFormat('EEE, dd MMM').parse(doc['date']);
+  //     return charts.Series(
+  //       id: 'Balance',
+  //       domainFn: (dynamic datum, _) => datum['date'] as DateTime,
+  //       measureFn: (dynamic datum, _) => datum['amount'] as double,
+  //       data: [
+  //         {'date': date, 'amount': doc['amount'].toDouble()}
+  //       ],
+  //       colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+  //     );
+  //   }).toList();
 
-    final expenseData = expenseSnapshot.docs.map((doc) {
-      final date = DateFormat('EEE, dd MMM').parse(doc['date']);
-      return new charts.Series(
-        id: 'Expenses',
-        domainFn: (dynamic datum, _) => datum['date'] as DateTime,
-        measureFn: (dynamic datum, _) => datum['amount'] as double,
-        data: [
-          {'date': date, 'amount': doc['amount'].toDouble()}
-        ],
-        colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-      );
-    }).toList();
+  //   final expenseData = expenseSnapshot.docs.map((doc) {
+  //     final date = DateFormat('EEE, dd MMM').parse(doc['date']);
+  //     return charts.Series(
+  //       id: 'Expenses',
+  //       domainFn: (dynamic datum, _) => datum['date'] as DateTime,
+  //       measureFn: (dynamic datum, _) => datum['amount'] as double,
+  //       data: [
+  //         {'date': date, 'amount': doc['amount'].toDouble()}
+  //       ],
+  //       colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+  //     );
+  //   }).toList();
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Expense and Balance Graph'),
-          content: SizedBox(
-            height: 300,
-            child: charts.TimeSeriesChart(
-              balanceData + expenseData,
-              animate: true,
-            ),
-          ),
-          actions: [
-            TextButton(
-              child: Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: const Text('Expense and Balance Graph'),
+  //         content: SizedBox(
+  //           height: 300,
+  //           child: charts.TimeSeriesChart(
+  //             balanceData + expenseData,
+  //             animate: true,
+  //           ),
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             child: const Text('Close'),
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -238,11 +237,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
               children: [
                 Text(
                   'Selected Date: ${DateFormat('EEE, dd MMM').format(widget.selectedDate)}',
-                  style: TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16),
                 ),
                 ElevatedButton(
-                  onPressed: _showGraphDialog,
-                  child: Text('Show Graph'),
+                  // onPressed: _showGraphDialog,
+                  onPressed: (){},
+                  child: const Text('Show Graph'),
                 ),
               ],
             ),
@@ -260,7 +260,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
@@ -268,7 +268,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(child: Text('No transactions found.'));
+                  return const Center(child: Text('No transactions found.'));
                 }
 
                 final transactions = snapshot.data!.docs;
@@ -315,7 +315,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _generateAndDownloadPDF,
-        child: Icon(Icons.download),
+        child: const Icon(Icons.download),
       ),
     );
   }

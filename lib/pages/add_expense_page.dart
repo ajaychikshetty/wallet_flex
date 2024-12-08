@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class AddExpensePage extends StatefulWidget {
+  const AddExpensePage({super.key});
+
   @override
   _AddExpensePageState createState() => _AddExpensePageState();
 }
@@ -36,7 +38,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Expense'),
+        title: const Text('Add Expense'),
       ),
       body: Padding(
         padding: EdgeInsets.all(screenWidth * 0.05),
@@ -45,14 +47,14 @@ class _AddExpensePageState extends State<AddExpensePage> {
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Amount',
                 hintText: 'Enter expense amount',
               ),
             ),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Description',
                 hintText: 'Enter expense description',
               ),
@@ -64,7 +66,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   "Selected Date: ${DateFormat('EEE, dd MMM').format(_selectedDate)}",
                 ),
                 IconButton(
-                  icon: Icon(Icons.calendar_today),
+                  icon: const Icon(Icons.calendar_today),
                   onPressed: () => _selectDate(context),
                 ),
               ],
@@ -131,14 +133,14 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   } else {
                     // If no balance record exists for the selected date, handle it
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                           content: Text(
                               'No balance record found for the selected date')),
                     );
                   }
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                         content: Text(
                             'Expense added, transaction recorded, and balance updated successfully')),
                   );
@@ -149,7 +151,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   );
                 }
               },
-              child: Text('Add Expense'),
+              child: const Text('Add Expense'),
             ),
           ],
         ),

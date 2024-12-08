@@ -1,0 +1,57 @@
+  bottom: TabBar(
+          indicator: null,
+          controller: _tabController,
+          indicatorColor: accentColor,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: GoogleFonts.openSans(
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+            letterSpacing: 0.5,
+          ),
+          tabs: [
+            Tab(
+              icon: Icon(
+                Icons.currency_rupee_sharp, 
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 5.0,
+                    color: Colors.black45,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ), 
+              text: "Spending"
+            ),
+            Tab(
+              icon: Icon(
+                Icons.receipt, 
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 5.0,
+                    color: Colors.black45,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ), 
+              text: "Transactions"
+            ),
+            Tab(
+              icon: Icon(
+                Icons.account_circle, 
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 5.0,
+                    color: Colors.black45,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ), 
+              text: "My Profile"
+            ),
+          ],
+        ),
+      
