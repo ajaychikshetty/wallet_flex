@@ -422,28 +422,29 @@ class _HomePageState extends State<HomePage>
       },
     );
   }
-// // New method to handle notifications
-//   void _checkAndShowNotifications(double balanceProgress) {
-//     if (balanceProgress > 0.9 && !_hasNotified90) {
-//       _showBudgetNotification('Warning! 90% of your budget used.');
-//       setState(() {
-//         _hasNotified90 = true;
-//       });
-//     } else if (balanceProgress > 0.7 && !_hasNotified70) {
-//       _showBudgetNotification('Warning! 70% of your budget used.');
-//       setState(() {
-//         _hasNotified70 = true;
-//       });
-//     } else if (balanceProgress <= 0.7 && balanceProgress > 0.5) {
-//       setState(() {
-//         _hasNotified70 = false;
-//       });
-//     } else if (balanceProgress <= 0.9 && balanceProgress > 0.7) {
-//       setState(() {
-//         _hasNotified90 = false;
-//       });
-//     }
-//   }
+
+// New method to handle notifications
+  // void _checkAndShowNotifications(double balanceProgress) {
+  //   if (balanceProgress > 0.9 && !_hasNotified90) {
+  //     _showBudgetNotification('Warning! 90% of your budget used.');
+  //     setState(() {
+  //       _hasNotified90 = true;
+  //     });
+  //   } else if (balanceProgress > 0.7 && !_hasNotified70) {
+  //     _showBudgetNotification('Warning! 70% of your budget used.');
+  //     setState(() {
+  //       _hasNotified70 = true;
+  //     });
+  //   } else if (balanceProgress <= 0.7 && balanceProgress > 0.5) {
+  //     setState(() {
+  //       _hasNotified70 = false;
+  //     });
+  //   } else if (balanceProgress <= 0.9 && balanceProgress > 0.7) {
+  //     setState(() {
+  //       _hasNotified90 = false;
+  //     });
+  //   }
+  // }
 
   Color _getProgressColor(double progress) {
     if (progress < 0.5) return Colors.green.shade700;

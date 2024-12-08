@@ -1,70 +1,82 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-
-admin.initializeApp();
-
 exports.processRecurringExpenses = functions.pubsub.schedule("every 24 hours").onRun(async (context) => {
   const now = new Date();
-  const currentDate = `${now.getFullYear()}-${("0" + (now.getMonth() + 1)).slice(-2)}-${("0" + now.getDate()).slice(-2)}`;
+  const formattedDate = DateFormat('EEE, dd MMM').format(now);
 
-  // Get all users
-  const snapshot = await admin.firestore().collection("user_details").get();
-  snapshot.forEach(async (userDoc) => {
-    const userId = userDoc.id;
-    const recurringRef = admin.firestore().collection("user_details").doc(userId).collection("recurring_pay");
+  try {
+    const usersSnapshot = await admin.firestore().collection("user_details").get();
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const batch = admin.firestore().batch(); // Use batch writes for atomicity
+      
+      // Get recurring expenses
+      const recurringSnapshot = await admin.firestore()
+        .collection("user_details")
+        .doc(userId)
+        .collection("recurring_pay")
+        .where('isActive', '==', true)
+        .where('recurrence', '==', 'daily')
+        .get();
 
-    const recurringSnapshot = await recurringRef.get();
-    recurringSnapshot.forEach(async (expenseDoc) => {
-      const data = expenseDoc.data();
-      const recurrenceType = data.recurrence;
-      const startDate = new Date(data.startDate);
-      const expenseAmount = data.amount;
-      const description = data.description;
-      const userBalanceRef = admin.firestore().collection("user_details").doc(userId).collection("balance");
+      for (const recurringDoc of recurringSnapshot.docs) {
+        const data = recurringDoc.data();
+        
+        // Add to expenses collection
+        const expenseRef = admin.firestore()
+          .collection("user_details")
+          .doc(userId)
+          .collection("expenses")
+          .doc();
+          
+        batch.set(expenseRef, {
+          'amount': data.amount,
+          'description': data.description,
+          'date': formattedDate,
+          'timestamp': now.toISOString(),
+          'type': 'expense',
+          'isRecurring': true
+        });
 
-      // Calculate the next occurrence based on the recurrence type
-      let nextOccurrence;
-      switch (recurrenceType) {
-        case "monthly":
-          nextOccurrence = new Date(startDate.setMonth(startDate.getMonth() + 1));
-          break;
-        case "weekly":
-          nextOccurrence = new Date(startDate.setDate(startDate.getDate() + 7));
-          break;
-        case "yearly":
-          nextOccurrence = new Date(startDate.setFullYear(startDate.getFullYear() + 1));
-          break;
-        default:
-          nextOccurrence = startDate;
-          break;
-      }
+        // Update balance
+        const balanceSnapshot = await admin.firestore()
+          .collection("user_details")
+          .doc(userId)
+          .collection("balance")
+          .where('date', '==', formattedDate)
+          .get();
 
-      // Check if the current date matches the next occurrence
-      if (currentDate === `${nextOccurrence.getFullYear()}-${("0" + (nextOccurrence.getMonth() + 1)).slice(-2)}-${("0" + nextOccurrence.getDate()).slice(-2)}`) {
-        // Deduct the amount from the user's balance
-        const balanceSnapshot = await userBalanceRef.where("date", "==", currentDate).get();
         if (!balanceSnapshot.empty) {
           const balanceDoc = balanceSnapshot.docs[0];
-          const existingBalance = balanceDoc.data().amount;
-          const newBalance = existingBalance - expenseAmount;
-
-          await userBalanceRef.doc(balanceDoc.id).update({ amount: newBalance });
-
-          // Record the transaction
-          await admin.firestore().collection("user_details").doc(userId).collection("transactions").add({
-            amount: expenseAmount,
-            date: currentDate,
-            timestamp: new Date().toISOString(),
-            description: description,
-            type: "expense",
-            isRecurring: true,
-            recurrenceType: recurrenceType
+          batch.update(balanceDoc.ref, {
+            'amount': admin.firestore.FieldValue.increment(-data.amount)
           });
-
-          // Update the startDate for the next occurrence
-          await expenseDoc.ref.update({ startDate: nextOccurrence.toISOString() });
         }
+
+        // Optional: Add to transactions collection if you decide to keep it
+        const transactionRef = admin.firestore()
+          .collection("user_details")
+          .doc(userId)
+          .collection("transactions")
+          .doc();
+          
+        batch.set(transactionRef, {
+          'amount': data.amount,
+          'date': formattedDate,
+          'timestamp': now.toISOString(),
+          'tname': `${data.description} (Recurring)`,
+          'type': 'expense',
+          'isRecurring': true
+        });
       }
-    });
-  });
+
+      // Commit all operations atomically
+      await batch.commit();
+    }
+    
+    console.log('Successfully processed recurring expenses');
+    return null;
+  } catch (error) {
+    console.error('Error processing recurring expenses:', error);
+    throw error;
+  }
 });

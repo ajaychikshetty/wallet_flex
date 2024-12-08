@@ -195,6 +195,23 @@ Stream<Map<String, dynamic>?> _fetchFinancialDataStream() {
             children: [
               _buildFinancialSummary(screenWidth, screenHeight),
               _buildMonthlyInsights(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Recurring Expenses',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRecurringExpenses(context),
+                  ],
+                ),
+              ),
               _buildSpendingChart(),
             ],
           ),
@@ -387,6 +404,136 @@ Stream<Map<String, dynamic>?> _fetchFinancialDataStream() {
         ),
       ),
     );
+  }
+
+  Widget _buildRecurringExpenses(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('user_details')
+          .doc(_auth.currentUser!.uid)
+          .collection('recurring_pay')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text('No recurring expenses found'),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final doc = snapshot.data!.docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: accentColor.withOpacity(0.1),
+                  child: const Icon(
+                    Icons.repeat,
+                    color: accentColor,
+                  ),
+                ),
+                title: Text(data['description'] ?? 'No description'),
+                subtitle: Text(
+                    '₹${data['amount']?.toStringAsFixed(2) ?? '0.00'} daily'),
+                trailing: Text(
+                  'Started: ${DateFormat('dd MMM yyyy').format(DateTime.parse(data['startDate']))}',
+                  style: TextStyle(
+                    color: textColor.withOpacity(0.6),
+                    fontSize: 12,
+                  ),
+                ),
+                onTap: () => _showRecurringExpenseDetails(context, doc),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showRecurringExpenseDetails(
+      BuildContext context, DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Recurring Expense Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Description: ${data['description'] ?? 'No description'}'),
+              const SizedBox(height: 8),
+              Text('Amount: ₹${data['amount']?.toStringAsFixed(2) ?? '0.00'}'),
+              const SizedBox(height: 8),
+              Text('Recurrence: ${data['recurrence'] ?? 'daily'}'),
+              const SizedBox(height: 8),
+              Text(
+                  'Start Date: ${DateFormat('dd MMM yyyy').format(DateTime.parse(data['startDate']))}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _cancelRecurringExpense(context, doc.id),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Cancel Recurring Expense'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _cancelRecurringExpense(
+      BuildContext context, String docId) async {
+    try {
+      await _firestore
+          .collection('user_details')
+          .doc(_auth.currentUser!.uid)
+          .collection('recurring_pay')
+          .doc(docId)
+          .update({'isActive': false});
+
+      Navigator.of(context).pop(); // Close the dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recurring expense cancelled successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to cancel recurring expense: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildInsightRow({

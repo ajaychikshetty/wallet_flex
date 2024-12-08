@@ -17,6 +17,11 @@ class _AddExpensePageState extends State<AddExpensePage> {
   final TextEditingController _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
+  // Add these new variables to track recurring state
+  bool _isRecurring = false;
+  String _recurringType =
+      'daily'; // We can expand this later for weekly/monthly
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -71,6 +76,20 @@ class _AddExpensePageState extends State<AddExpensePage> {
                 ),
               ],
             ),
+            // Add the checkbox for recurring expenses
+            Row(
+              children: [
+                Checkbox(
+                  value: _isRecurring,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _isRecurring = value ?? false;
+                    });
+                  },
+                ),
+                const Text('Make this a recurring daily expense'),
+              ],
+            ),
             SizedBox(height: screenHeight * 0.02),
             ElevatedButton(
               onPressed: () async {
@@ -82,42 +101,54 @@ class _AddExpensePageState extends State<AddExpensePage> {
                 final String description = _descriptionController.text;
 
                 try {
-                  // Reference to the user's expenses, transactions, and balance subcollections
-                  final CollectionReference expensesRef = _firestore
+                  // Add to expenses collection
+                  await _firestore
                       .collection('user_details')
                       .doc(userId)
-                      .collection('expenses');
-
-                  final CollectionReference transactionsRef = _firestore
-                      .collection('user_details')
-                      .doc(userId)
-                      .collection('transactions');
-
-                  final CollectionReference balanceRef = _firestore
-                      .collection('user_details')
-                      .doc(userId)
-                      .collection('balance');
-
-                  // Add expense record
-                  await expensesRef.add({
+                      .collection('expenses')
+                      .add({
                     'amount': amount,
                     'description': description,
                     'date': formattedDate,
                     'timestamp': DateTime.now().toIso8601String(),
                     'type': 'expense',
+                    'isRecurring': _isRecurring,
                   });
 
-                  // Add transaction record
-                  await transactionsRef.add({
+                  // If it's a recurring expense, add to recurring_pay collection
+                  if (_isRecurring) {
+                    await _firestore
+                        .collection('user_details')
+                        .doc(userId)
+                        .collection('recurring_pay')
+                        .add({
+                      'amount': amount,
+                      'description': description,
+                      'startDate': DateTime.now().toIso8601String(),
+                      'recurrence': _recurringType,
+                      'isActive': true,
+                    });
+                  }
+
+                  // Add to transactions collection
+                  await _firestore
+                      .collection('user_details')
+                      .doc(userId)
+                      .collection('transactions')
+                      .add({
                     'amount': amount,
                     'date': formattedDate,
                     'timestamp': DateTime.now().toIso8601String(),
                     'tname': description,
                     'type': 'expense',
+                    'isRecurring': _isRecurring,
                   });
 
                   // Update balance
-                  final QuerySnapshot balanceSnapshot = await balanceRef
+                  final QuerySnapshot balanceSnapshot = await _firestore
+                      .collection('user_details')
+                      .doc(userId)
+                      .collection('balance')
                       .where('date', isEqualTo: formattedDate)
                       .get();
 
@@ -127,22 +158,20 @@ class _AddExpensePageState extends State<AddExpensePage> {
                     final double existingBalance = balanceDoc['amount'];
                     final double newBalance = existingBalance - amount;
 
-                    await balanceRef
+                    await _firestore
+                        .collection('user_details')
+                        .doc(userId)
+                        .collection('balance')
                         .doc(balanceDoc.id)
                         .update({'amount': newBalance});
-                  } else {
-                    // If no balance record exists for the selected date, handle it
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'No balance record found for the selected date')),
-                    );
                   }
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Expense added, transaction recorded, and balance updated successfully')),
+                    SnackBar(
+                      content: Text(_isRecurring
+                          ? 'Recurring expense added successfully'
+                          : 'Expense added successfully'),
+                    ),
                   );
                   Navigator.of(context).pop();
                 } catch (e) {
