@@ -251,149 +251,155 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
 
           // Transactions List
-        Expanded(
-  child: StreamBuilder<QuerySnapshot>(
-    stream: _firestore
-        .collection('user_details')
-        .doc(userId)
-        .collection('transactions')
-        .where('date', isEqualTo: widget.selectedDate)  // Directly use DateTime field for comparison
-        .orderBy('timestamp', descending: true)
-        .snapshots(),
-    builder: (context, snapshot) {
-      // Checking the connection state
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return Center(
-          child: CircularProgressIndicator(
-            color: primaryColor,
-          ),
-        );
-      }
-
-      // Error handling
-      if (snapshot.hasError) {
-        print('Error: ${snapshot.error}');
-        return Center(
-          child: Text(
-            'Error: ${snapshot.error}',
-            style: TextStyle(color: accentColor),
-          ),
-        );
-      }
-
-      // If no data exists
-      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.receipt_long_outlined,
-                size: 80,
-                color: primaryColor.withOpacity(0.5),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No transactions found',
-                style: TextStyle(
-                  color: primaryColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // Extracting transaction data
-      final transactions = snapshot.data!.docs;
-
-      return ListView.builder(
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index].data() as Map<String, dynamic>;
-          final amount = transaction['amount'] ?? 0;
-          final tname = transaction['tname'] ?? 'No name';
-          final type = transaction['type'] ?? 'Unknown';
-          final date = transaction['date'] ?? '';
-
-          // Parsing the date string to DateTime
-          DateTime transactionDate;
-          try {
-            transactionDate = DateFormat('EEE, dd MMM').parse(date);
-          } catch (e) {
-            transactionDate = DateTime.now();
-          }
-
-          // Building the list item
-          return GestureDetector(
-            onTap: () => _showReceiptDialog(transaction),
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 254, 250, 240),
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryColor.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-                border: Border.all(
-                  color: secondaryColor.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tname,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: primaryColor,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Date: ${DateFormat('EEE, dd MMM').format(transactionDate)}',
-                            style: TextStyle(
-                              color: textColor.withOpacity(0.6),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('user_details')
+                  .doc(userId)
+                  .collection('transactions')
+                  .where('date',
+                      isEqualTo: DateFormat('EEE, dd MMM').format(widget
+                          .selectedDate)) // Format the date to match Firestore
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                // Checking the connection state
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: primaryColor,
                     ),
-                    Text(
-                      '${type == 'income' ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: type == 'income' ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                  );
+                }
+
+                // Error handling
+                if (snapshot.hasError) {
+                  print('Error: ${snapshot.error}');
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(color: accentColor),
                     ),
-                  ],
-                ),
-              ),
+                  );
+                }
+
+                // If no data exists
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 80,
+                          color: primaryColor.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No transactions found',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // Extracting transaction data
+                final transactions = snapshot.data!.docs;
+
+                return ListView.builder(
+                  itemCount: transactions.length,
+                  itemBuilder: (context, index) {
+                    final transaction =
+                        transactions[index].data() as Map<String, dynamic>;
+                    final amount = transaction['amount'] ?? 0;
+                    final tname = transaction['tname'] ?? 'No name';
+                    final type = transaction['type'] ?? 'Unknown';
+                    final date = transaction['date'] ?? '';
+
+                    // Parsing the date string to DateTime
+                    DateTime transactionDate;
+                    try {
+                      transactionDate = DateFormat('EEE, dd MMM').parse(date);
+                    } catch (e) {
+                      transactionDate = DateTime.now();
+                    }
+
+                    // Building the list item
+                    return GestureDetector(
+                      onTap: () => _showReceiptDialog(transaction),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8.0, horizontal: 16.0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 254, 250, 240),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: secondaryColor.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tname,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: primaryColor,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Date: ${DateFormat('EEE, dd MMM').format(transactionDate)}',
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.6),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '${type == 'income' ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: type == 'income'
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          );
-        },
-      );
-    },
-  ),
-),
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(

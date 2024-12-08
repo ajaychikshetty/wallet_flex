@@ -252,7 +252,7 @@ class _HomePageState extends State<HomePage>
             ),
           ),
         ),
-         bottom: TabBar(
+        bottom: TabBar(
           indicator: null,
           controller: _tabController,
           indicatorColor: accentColor,
@@ -265,50 +265,46 @@ class _HomePageState extends State<HomePage>
           ),
           tabs: [
             Tab(
-              icon: Icon(
-                Icons.currency_rupee_sharp, 
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    blurRadius: 5.0,
-                    color: Colors.black45,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ), 
-              text: "Spending"
-            ),
+                icon: Icon(
+                  Icons.currency_rupee_sharp,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 5.0,
+                      color: Colors.black45,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                text: "Spending"),
             Tab(
-              icon: Icon(
-                Icons.receipt, 
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    blurRadius: 5.0,
-                    color: Colors.black45,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ), 
-              text: "Transactions"
-            ),
+                icon: Icon(
+                  Icons.receipt,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 5.0,
+                      color: Colors.black45,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                text: "Transactions"),
             Tab(
-              icon: Icon(
-                Icons.account_circle, 
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    blurRadius: 5.0,
-                    color: Colors.black45,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ), 
-              text: "My Profile"
-            ),
+                icon: Icon(
+                  Icons.account_circle,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 5.0,
+                      color: Colors.black45,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                text: "My Profile"),
           ],
         ),
-      
       ),
       body: Column(
         children: [
@@ -369,9 +365,9 @@ class _HomePageState extends State<HomePage>
                 balance > 0 ? totalSpending / (balance + totalSpending) : 0;
 
             // Move notification logic outside of the build method
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _checkAndShowNotifications(balanceProgress);
-            });
+            // WidgetsBinding.instance.addPostFrameCallback((_) {
+            //   _checkAndShowNotifications(balanceProgress);
+            // });
 
             return Padding(
               padding: EdgeInsets.all(screenWidth * 0.04),
@@ -414,27 +410,27 @@ class _HomePageState extends State<HomePage>
   }
 
 // New method to handle notifications
-  void _checkAndShowNotifications(double balanceProgress) {
-    if (balanceProgress > 0.9 && !_hasNotified90) {
-      _showBudgetNotification('Warning! 90% of your budget used.');
-      setState(() {
-        _hasNotified90 = true;
-      });
-    } else if (balanceProgress > 0.7 && !_hasNotified70) {
-      _showBudgetNotification('Warning! 70% of your budget used.');
-      setState(() {
-        _hasNotified70 = true;
-      });
-    } else if (balanceProgress <= 0.7 && balanceProgress > 0.5) {
-      setState(() {
-        _hasNotified70 = false;
-      });
-    } else if (balanceProgress <= 0.9 && balanceProgress > 0.7) {
-      setState(() {
-        _hasNotified90 = false;
-      });
-    }
-  }
+  // void _checkAndShowNotifications(double balanceProgress) {
+  //   if (balanceProgress > 0.9 && !_hasNotified90) {
+  //     _showBudgetNotification('Warning! 90% of your budget used.');
+  //     setState(() {
+  //       _hasNotified90 = true;
+  //     });
+  //   } else if (balanceProgress > 0.7 && !_hasNotified70) {
+  //     _showBudgetNotification('Warning! 70% of your budget used.');
+  //     setState(() {
+  //       _hasNotified70 = true;
+  //     });
+  //   } else if (balanceProgress <= 0.7 && balanceProgress > 0.5) {
+  //     setState(() {
+  //       _hasNotified70 = false;
+  //     });
+  //   } else if (balanceProgress <= 0.9 && balanceProgress > 0.7) {
+  //     setState(() {
+  //       _hasNotified90 = false;
+  //     });
+  //   }
+  // }
 
   Color _getProgressColor(double progress) {
     if (progress < 0.5) return Colors.green.shade700;
