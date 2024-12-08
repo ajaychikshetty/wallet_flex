@@ -16,15 +16,17 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
-  // Color Palette
-  static const Color primaryColor = Color(0xFF6F4E37); // Coffee Brown
-  static const Color secondaryColor = Color(0xFFA0522D); // Sienna
-  static const Color accentColor = Color(0xFFD2691E); // Warm Terracotta
-  static const Color backgroundColor = Color(0xFFFFF4E0); // Soft Cream
+  // Color Palette (same as before)
+  static const Color primaryColor = Color(0xFF6F4E37);
+  static const Color secondaryColor = Color(0xFFA0522D);
+  static const Color accentColor = Color(0xFFD2691E);
+  static const Color backgroundColor = Color(0xFFFFF4E0);
   static const Color textColor = Color(0xFF3E2723);
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   String _formatDateForFirestore(DateTime date) {
     return DateFormat('EEE, dd MMM').format(date);
@@ -33,13 +35,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Future<void> _generateAndDownloadPDF() async {
     final String userId = _auth.currentUser!.uid;
 
-    final querySnapshot = await _firestore
+    final querySnapshot = await FirebaseFirestore.instance
         .collection('user_details')
         .doc(userId)
         .collection('transactions')
         .where('date', isEqualTo: _formatDateForFirestore(widget.selectedDate))
         .orderBy('timestamp', descending: true)
         .get();
+
+    print('Query results: ${querySnapshot.docs}');
 
     if (querySnapshot.docs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -112,7 +116,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8.0),
                           child: pw.Text(
-                            '${doc['type'] == 'income' ? '+' : '-'}₹${(doc['amount'] ?? 0).toStringAsFixed(2)}',
+                            '${doc['type'] == 'income' ? '+' : '-'}Rs ${(doc['amount'] ?? 0).toStringAsFixed(2)}',
                             style: pw.TextStyle(
                               color: doc['type'] == 'income'
                                   ? PdfColors.green
@@ -216,6 +220,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final String userId = _auth.currentUser!.uid;
 
@@ -225,14 +235,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         children: [
           // Selected Date Header
           Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: secondaryColor.withOpacity(0.1),
-              border: Border(
-                bottom: BorderSide(
-                    color: secondaryColor.withOpacity(0.3), width: 1),
-              ),
-            ),
+            
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -250,150 +253,208 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ),
           ),
 
-          // Transactions List
-        Expanded(
-  child: StreamBuilder<QuerySnapshot>(
-    stream: _firestore
-        .collection('user_details')
-        .doc(userId)
-        .collection('transactions')
-        .where('date', isEqualTo: widget.selectedDate)  // Directly use DateTime field for comparison
-        .orderBy('timestamp', descending: true)
-        .snapshots(),
-    builder: (context, snapshot) {
-      // Checking the connection state
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return Center(
-          child: CircularProgressIndicator(
-            color: primaryColor,
-          ),
-        );
-      }
-
-      // Error handling
-      if (snapshot.hasError) {
-        print('Error: ${snapshot.error}');
-        return Center(
-          child: Text(
-            'Error: ${snapshot.error}',
-            style: TextStyle(color: accentColor),
-          ),
-        );
-      }
-
-      // If no data exists
-      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.receipt_long_outlined,
-                size: 80,
-                color: primaryColor.withOpacity(0.5),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No transactions found',
-                style: TextStyle(
-                  color: primaryColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search transactions...',
+                prefixIcon: Icon(Icons.search, color: primaryColor),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear, color: accentColor),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide:
+                      BorderSide(color: secondaryColor.withOpacity(0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: primaryColor, width: 2),
                 ),
               ),
-            ],
-          ),
-        );
-      }
-
-      // Extracting transaction data
-      final transactions = snapshot.data!.docs;
-
-      return ListView.builder(
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index].data() as Map<String, dynamic>;
-          final amount = transaction['amount'] ?? 0;
-          final tname = transaction['tname'] ?? 'No name';
-          final type = transaction['type'] ?? 'Unknown';
-          final date = transaction['date'] ?? '';
-
-          // Parsing the date string to DateTime
-          DateTime transactionDate;
-          try {
-            transactionDate = DateFormat('EEE, dd MMM').parse(date);
-          } catch (e) {
-            transactionDate = DateTime.now();
-          }
-
-          // Building the list item
-          return GestureDetector(
-            onTap: () => _showReceiptDialog(transaction),
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 254, 250, 240),
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryColor.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-                border: Border.all(
-                  color: secondaryColor.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tname,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: primaryColor,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Date: ${DateFormat('EEE, dd MMM').format(transactionDate)}',
-                            style: TextStyle(
-                              color: textColor.withOpacity(0.6),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '${type == 'income' ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: type == 'income' ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
             ),
-          );
-        },
-      );
-    },
-  ),
-),
+          ),
+
+          // Transactions List
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('user_details')
+                  .doc(userId)
+                  .collection('transactions')
+                  .where('date',
+                      isEqualTo: _formatDateForFirestore(widget.selectedDate))
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                // Checking the connection state
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: primaryColor,
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  print('Error: ${snapshot.error}');
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(color: accentColor),
+                    ),
+                  );
+                }
+
+                // Filter transactions based on search query
+                final allTransactions = snapshot.data!.docs;
+                final filteredTransactions = allTransactions.where((doc) {
+                  final transaction = doc.data() as Map<String, dynamic>;
+                  final tname =
+                      (transaction['tname'] ?? '').toString().toLowerCase();
+                  final amount = transaction['amount'].toString();
+                  final type =
+                      (transaction['type'] ?? '').toString().toLowerCase();
+
+                  return tname.contains(_searchQuery) ||
+                      amount.contains(_searchQuery) ||
+                      type.contains(_searchQuery);
+                }).toList();
+
+                // If no data exists or no search results
+                if (!snapshot.hasData || filteredTransactions.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 80,
+                          color: primaryColor.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isNotEmpty
+                              ? 'No transactions found matching "$_searchQuery"'
+                              : 'No transactions found',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filteredTransactions.length,
+                  itemBuilder: (context, index) {
+                    final transaction = filteredTransactions[index].data()
+                        as Map<String, dynamic>;
+                    final amount = transaction['amount'] ?? 0;
+                    final tname = transaction['tname'] ?? 'No name';
+                    final type = transaction['type'] ?? 'Unknown';
+                    final date = transaction['date'] ?? '';
+
+                    // Parsing the date string to DateTime
+                    DateTime transactionDate;
+                    try {
+                      transactionDate = DateFormat('EEE, dd MMM').parse(date);
+                    } catch (e) {
+                      transactionDate = DateTime.now();
+                    }
+
+                    // Building the list item (same as before)
+                    return GestureDetector(
+                      onTap: () => _showReceiptDialog(transaction),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8.0, horizontal: 16.0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 254, 250, 240),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: secondaryColor.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tname,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: primaryColor,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Date: ${DateFormat('EEE, dd MMM').format(transactionDate)}',
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.6),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '${type == 'income' ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: type == 'income'
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(
@@ -457,6 +518,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
             ),
           ),
+        
         ],
       ),
     );
