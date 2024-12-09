@@ -13,8 +13,7 @@ import 'package:glassmorphism/glassmorphism.dart';
 class SpendingSection extends StatefulWidget {
   final DateTime selectedDate;
 
-  const SpendingSection({Key? key, required this.selectedDate})
-      : super(key: key);
+  const SpendingSection({super.key, required this.selectedDate});
 
   @override
   _SpendingSectionState createState() => _SpendingSectionState();

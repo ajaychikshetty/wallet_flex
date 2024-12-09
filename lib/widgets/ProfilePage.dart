@@ -44,7 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
             .get();
 
         if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>?;
+          final userData = userDoc.data();
 
           setState(() {
             _nameController.text = userData?['name'] ?? '';

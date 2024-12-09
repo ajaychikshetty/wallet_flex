@@ -22,6 +22,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
   String _recurringType =
       'daily'; // We can expand this later for weekly/monthly
 
+  final List<String> _recurringOptions = ['daily', 'weekly', 'monthly'];
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -76,6 +78,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                 ),
               ],
             ),
+
             // Add the checkbox for recurring expenses
             Row(
               children: [
@@ -84,12 +87,46 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   onChanged: (bool? value) {
                     setState(() {
                       _isRecurring = value ?? false;
+                      if (!_isRecurring) {
+                        _recurringType =
+                            'daily'; // Reset to default when unchecked
+                      }
                     });
                   },
                 ),
-                const Text('Make this a recurring daily expense'),
+                const Text('Make this a recurring expense'),
               ],
             ),
+            if (_isRecurring) // Only show when recurring is checked
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                        width: 32), // Indent to align with checkbox text
+                    const Text('Recurrence: '),
+                    const SizedBox(width: 8),
+                    DropdownButton<String>(
+                      value: _recurringType,
+                      items: _recurringOptions.map((String type) {
+                        return DropdownMenuItem<String>(
+                          value: type,
+                          child: Text(type
+                              .capitalize()), // Add the capitalize extension below
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _recurringType = newValue;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
             SizedBox(height: screenHeight * 0.02),
             ElevatedButton(
               onPressed: () async {
@@ -125,8 +162,11 @@ class _AddExpensePageState extends State<AddExpensePage> {
                       'amount': amount,
                       'description': description,
                       'startDate': DateTime.now().toIso8601String(),
-                      'recurrence': _recurringType,
+                      'recurrence':
+                          _recurringType, // This will now be 'daily', 'weekly', or 'monthly'
                       'isActive': true,
+                      'lastProcessed': DateTime.now()
+                          .toIso8601String(), // Add this to track last processing
                     });
                   }
 
@@ -186,5 +226,12 @@ class _AddExpensePageState extends State<AddExpensePage> {
         ),
       ),
     );
+  }
+}
+
+// Add this extension for capitalizing strings
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }

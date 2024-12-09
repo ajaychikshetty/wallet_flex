@@ -8,15 +8,15 @@ class SpendingChart extends StatefulWidget {
   final String selectedDate;
 
   const SpendingChart(
-      {Key? key, required this.userId, required this.selectedDate})
-      : super(key: key);
+      {super.key, required this.userId, required this.selectedDate});
 
   @override
   _SpendingChartState createState() => _SpendingChartState();
 }
 
 class _SpendingChartState extends State<SpendingChart> {
-  static const Color backgroundColor = Color.fromARGB(255, 250, 247, 240); // Soft Cream
+  static const Color backgroundColor =
+      Color.fromARGB(255, 250, 247, 240); // Soft Cream
   // Soft Cream
 
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -73,12 +73,10 @@ class _SpendingChartState extends State<SpendingChart> {
     return Container(
       height: 250,
       decoration: BoxDecoration(
-        
         color: const Color.fromARGB(255, 254, 250, 240),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color.fromARGB(255, 69, 69, 69).withOpacity(0.2)
-        ),
+            color: const Color.fromARGB(255, 69, 69, 69).withOpacity(0.2)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),

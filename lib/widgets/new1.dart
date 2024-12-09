@@ -11,7 +11,7 @@ import 'package:glassmorphism/glassmorphism.dart';
 class SpendingSection extends StatefulWidget {
   final DateTime selectedDate;
 
-  const SpendingSection({Key? key, required this.selectedDate}) : super(key: key);
+  const SpendingSection({super.key, required this.selectedDate});
 
   @override
   _SpendingSectionState createState() => _SpendingSectionState();
@@ -32,7 +32,8 @@ class _SpendingSectionState extends State<SpendingSection> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final String userId = auth.currentUser!.uid;
-    String formattedDate = DateFormat('EEE, dd MMM').format(widget.selectedDate);
+    String formattedDate =
+        DateFormat('EEE, dd MMM').format(widget.selectedDate);
 
     return Container(
       decoration: BoxDecoration(
@@ -48,7 +49,8 @@ class _SpendingSectionState extends State<SpendingSection> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            _buildFinancialSummary(userId, formattedDate, screenWidth, screenHeight),
+            _buildFinancialSummary(
+                userId, formattedDate, screenWidth, screenHeight),
             _buildSpendingChart(userId, formattedDate),
             _buildActionButtons(context, screenWidth, screenHeight),
           ],
@@ -57,7 +59,8 @@ class _SpendingSectionState extends State<SpendingSection> {
     );
   }
 
-  Widget _buildFinancialSummary(String userId, String formattedDate, double screenWidth, double screenHeight) {
+  Widget _buildFinancialSummary(String userId, String formattedDate,
+      double screenWidth, double screenHeight) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: GlassmorphicContainer(
@@ -70,10 +73,7 @@ class _SpendingSectionState extends State<SpendingSection> {
         linearGradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Colors.white
-          ],
+          colors: [Colors.white, Colors.white],
         ),
         borderGradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -88,22 +88,10 @@ class _SpendingSectionState extends State<SpendingSection> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildFinancialCard(
-                userId, 
-                formattedDate, 
-                'Balance', 
-                Icons.account_balance_wallet, 
-                Colors.green,
-                screenWidth
-              ),
-              _buildFinancialCard(
-                userId, 
-                formattedDate, 
-                'Expense', 
-                Icons.money_off, 
-                Colors.red,
-                screenWidth
-              ),
+              _buildFinancialCard(userId, formattedDate, 'Balance',
+                  Icons.account_balance_wallet, Colors.green, screenWidth),
+              _buildFinancialCard(userId, formattedDate, 'Expense',
+                  Icons.money_off, Colors.red, screenWidth),
             ],
           ),
         ),
@@ -111,38 +99,35 @@ class _SpendingSectionState extends State<SpendingSection> {
     );
   }
 
-  Widget _buildFinancialCard(
-    String userId, 
-    String formattedDate, 
-    String type, 
-    IconData icon, 
-    Color color, 
-    double screenWidth
-  ) {
+  Widget _buildFinancialCard(String userId, String formattedDate, String type,
+      IconData icon, Color color, double screenWidth) {
     return StreamBuilder<QuerySnapshot>(
-      stream: type == 'Balance' 
-        ? firestore
-            .collection('user_details')
-            .doc(userId)
-            .collection('balance')
-            .where('date', isEqualTo: formattedDate)
-            .snapshots()
-        : firestore
-            .collection('user_details')
-            .doc(userId)
-            .collection('expenses')
-            .where('date', isEqualTo: formattedDate)
-            .snapshots(),
+      stream: type == 'Balance'
+          ? firestore
+              .collection('user_details')
+              .doc(userId)
+              .collection('balance')
+              .where('date', isEqualTo: formattedDate)
+              .snapshots()
+          : firestore
+              .collection('user_details')
+              .doc(userId)
+              .collection('expenses')
+              .where('date', isEqualTo: formattedDate)
+              .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingIndicator();
         }
 
         double amount = 0;
-        if (type == 'Balance' && snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+        if (type == 'Balance' &&
+            snapshot.hasData &&
+            snapshot.data!.docs.isNotEmpty) {
           amount = snapshot.data!.docs.first['amount']?.toDouble() ?? 0;
         } else if (type == 'Expense' && snapshot.hasData) {
-          amount = snapshot.data!.docs.fold(0, (sum, doc) => sum + (doc['amount']?.toDouble() ?? 0));
+          amount = snapshot.data!.docs
+              .fold(0, (sum, doc) => sum + (doc['amount']?.toDouble() ?? 0));
         }
 
         return Container(
@@ -188,27 +173,28 @@ class _SpendingSectionState extends State<SpendingSection> {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, double screenWidth, double screenHeight) {
+  Widget _buildActionButtons(
+      BuildContext context, double screenWidth, double screenHeight) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildGradientButton(
-            context, 
-            '+ Balance', 
-            screenWidth, 
-            screenHeight, 
+            context,
+            '+ Balance',
+            screenWidth,
+            screenHeight,
             () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => AddBalancePage()),
             ),
           ),
           _buildGradientButton(
-            context, 
-            '+ Expense', 
-            screenWidth, 
-            screenHeight, 
+            context,
+            '+ Expense',
+            screenWidth,
+            screenHeight,
             () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => AddExpensePage()),
@@ -227,13 +213,8 @@ class _SpendingSectionState extends State<SpendingSection> {
     );
   }
 
-  Widget _buildGradientButton(
-    BuildContext context, 
-    String text, 
-    double screenWidth, 
-    double screenHeight, 
-    VoidCallback onPressed
-  ) {
+  Widget _buildGradientButton(BuildContext context, String text,
+      double screenWidth, double screenHeight, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

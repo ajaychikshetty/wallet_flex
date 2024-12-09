@@ -11,7 +11,7 @@ import 'package:wallet_flex/widgets/TransactionsSection.dart';
 import 'package:wallet_flex/widgets/ProfilePage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -33,8 +33,8 @@ class _HomePageState extends State<HomePage>
 
   // State Variables
   DateTime _selectedDate = DateTime.now();
-  bool _hasNotified70 = false;
-  bool _hasNotified90 = false;
+  final bool _hasNotified70 = false;
+  final bool _hasNotified90 = false;
 
   @override
   void initState() {
