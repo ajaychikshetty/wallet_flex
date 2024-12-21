@@ -168,15 +168,12 @@ class _SpendingChartState extends State<SpendingChart> {
   }
 
   Color _getdescriptionColor(String description) {
-    final colorMap = {
-      'food': Colors.red.shade400,
-      'travel': Colors.blue.shade400,
-      'entertainment': Colors.green.shade400,
-      'shopping': Colors.purple.shade400,
-      'Utilities': Colors.orange.shade400,
-      'Uncategorized': Colors.grey.shade400,
-    };
-
-    return colorMap[description] ?? Colors.grey.shade400;
-  }
-}
+  // Generate a color based on the description
+  int hash = description.hashCode;
+  return Color.fromRGBO(
+    (hash & 0xFF0000) >> 16,
+    (hash & 0x00FF00) >> 8,
+    hash & 0x0000FF,
+    0.7,
+  );
+}}

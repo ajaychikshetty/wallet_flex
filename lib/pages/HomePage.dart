@@ -324,45 +324,52 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // Progress Bar Widget
   Widget _buildProgressBar(double screenWidth, double screenHeight) {
     final FirebaseAuth auth = FirebaseAuth.instance;
     final String userId = auth.currentUser!.uid;
+    final formattedDate = DateFormat('EEE, dd MMM').format(_selectedDate);
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('user_details')
           .doc(userId)
           .collection('balance')
-          .where('date',
-              isEqualTo: DateFormat('EEE, dd MMM').format(_selectedDate))
+          .where('date', isEqualTo: formattedDate)
           .snapshots(),
       builder: (context, balanceSnapshot) {
-        if (!balanceSnapshot.hasData || balanceSnapshot.data!.docs.isEmpty) {
-          return Container();
+        // Default values if no balance data
+        double balance = 0;
+
+        if (balanceSnapshot.hasData && balanceSnapshot.data!.docs.isNotEmpty) {
+          final balanceData = balanceSnapshot.data!.docs.first.data();
+          balance = balanceData['amount']?.toDouble() ?? 0;
         }
-        final balanceData = balanceSnapshot.data!.docs.first.data();
-        double balance = balanceData['amount']?.toDouble() ?? 0;
 
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance
               .collection('user_details')
               .doc(userId)
               .collection('expenses')
-              .where('date',
-                  isEqualTo: DateFormat('EEE, dd MMM').format(_selectedDate))
+              .where('date', isEqualTo: formattedDate)
               .snapshots(),
           builder: (context, expensesSnapshot) {
-            if (!expensesSnapshot.hasData) {
-              return Container();
-            }
-            double totalSpending = expensesSnapshot.data!.docs.fold(
-              0,
-              (sum, doc) => sum + (doc.data()['amount']?.toDouble() ?? 0),
-            );
+            // Calculate total spending
+            double totalSpending = expensesSnapshot.hasData
+                ? expensesSnapshot.data!.docs.fold(
+                    0,
+                    (sum, doc) => sum + (doc.data()['amount']?.toDouble() ?? 0),
+                  )
+                : 0;
 
-            double balanceProgress =
-                balance > 0 ? totalSpending / (balance + totalSpending) : 0;
+            // Calculate balance progress
+            double balanceProgress = balance > 0
+                ? totalSpending / (balance + totalSpending)
+                : totalSpending > 0
+                    ? 1.0 // If no balance but expenses exist, show full red
+                    : 0.0; // If no balance and no expenses, show empty bar
+
+            // Ensure progress doesn't exceed 1.0
+            balanceProgress = balanceProgress.clamp(0.0, 1.0);
 
             // Move notification logic outside of the build method
             // WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -382,14 +389,21 @@ class _HomePageState extends State<HomePage>
                     onPressed: _selectPreviousDate,
                   ),
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        minHeight: 15,
-                        backgroundColor: Colors.green.shade100,
-                        color: _getProgressColor(balanceProgress),
-                        value: balanceProgress,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                       
+                        SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: LinearProgressIndicator(
+                            minHeight: 15,
+                            backgroundColor: Colors.green.shade100,
+                            color: _getProgressColor(balanceProgress),
+                            value: balanceProgress,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(

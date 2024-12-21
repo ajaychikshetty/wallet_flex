@@ -36,14 +36,13 @@ class _SpendingSectionState extends State<SpendingSection>
 
   // Centralized financial data
   Map<String, dynamic>? _financialData;
-  bool _isLoading = true;
+  final bool _isLoading = true;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimationController();
-    _fetchFinancialData();
   }
 
   void _initializeAnimationController() {
@@ -60,54 +59,76 @@ class _SpendingSectionState extends State<SpendingSection>
     _animationController.forward();
   }
 
-  Future<void> _fetchFinancialData() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+  Stream<Map<String, dynamic>?> _fetchFinancialDataStream() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return Stream.error('User not authenticated');
+    }
 
-      final userId = _auth.currentUser?.uid;
-      if (userId == null) {
-        throw Exception('User not authenticated');
+    final formattedDate = DateFormat('EEE, dd MMM').format(widget.selectedDate);
+    final currentTime = DateTime.now();
+    final currentTimestamp = Timestamp.fromDate(currentTime);
+
+    return FirebaseFirestore.instance
+        .collection('user_details')
+        .doc(userId)
+        .collection('balance')
+        .where('date', isEqualTo: formattedDate)
+        .snapshots()
+        .asyncMap((balanceSnapshot) async {
+      // Fetch balance for the current date
+      final currentBalance = balanceSnapshot.docs.isNotEmpty
+          ? balanceSnapshot.docs.first.data()
+          : null;
+
+      // Check if balance needs to be carried forward from the previous day after 11:59 PM
+      if (currentBalance == null &&
+          currentTime.hour == 23 &&
+          currentTime.minute >= 59) {
+        final previousDate = widget.selectedDate.subtract(Duration(days: 1));
+        final formattedPreviousDate =
+            DateFormat('EEE, dd MMM').format(previousDate);
+
+        final previousBalanceSnapshot = await _firestore
+            .collection('user_details')
+            .doc(userId)
+            .collection('balance')
+            .where('date', isEqualTo: formattedPreviousDate)
+            .limit(1)
+            .get();
+
+        if (previousBalanceSnapshot.docs.isNotEmpty) {
+          final previousBalance = previousBalanceSnapshot.docs.first.data();
+          final remainingBalance = previousBalance['amount'] ?? 0.0;
+
+          // Automatically create balance entry for the current date
+          await _firestore
+              .collection('user_details')
+              .doc(userId)
+              .collection('balance')
+              .add({
+            'date': formattedDate,
+            'amount': remainingBalance,
+            'carriedForward': true,
+          });
+        }
       }
 
-      final formattedDate =
-          DateFormat('EEE, dd MMM').format(widget.selectedDate);
-
-      // Fetch balance
-      final balanceSnapshot = await _firestore
-          .collection('user_details')
-          .doc(userId)
-          .collection('balance')
-          .where('date', isEqualTo: formattedDate)
-          .limit(1)
-          .get();
-
-      // Fetch expenses
-      final expensesSnapshot = await _firestore
+      // Fetch expenses for the same date
+      final expensesSnapshot = await FirebaseFirestore.instance
           .collection('user_details')
           .doc(userId)
           .collection('expenses')
           .where('date', isEqualTo: formattedDate)
           .get();
 
-      setState(() {
-        _financialData = {
-          'balance': balanceSnapshot.docs.isNotEmpty
-              ? balanceSnapshot.docs.first.data()
-              : null,
-          'expenses': expensesSnapshot.docs.map((doc) => doc.data()).toList(),
-        };
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage =
-            'Failed to load financial data. Please check your connection.';
-        _isLoading = false;
-      });
-    }
+      return {
+        'balance': balanceSnapshot.docs.isNotEmpty
+            ? balanceSnapshot.docs.first.data()
+            : null,
+        'expenses': expensesSnapshot.docs.map((doc) => doc.data()).toList(),
+      };
+    });
   }
 
   @override
@@ -127,20 +148,33 @@ class _SpendingSectionState extends State<SpendingSection>
         backgroundColor: backgroundColor,
         bottomNavigationBar:
             _buildActionButtons(context, screenWidth, screenHeight),
-        body: _buildBody(screenWidth, screenHeight),
+        body: StreamBuilder<Map<String, dynamic>?>(
+          stream: _fetchFinancialDataStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoadingIndicator();
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: GoogleFonts.openSans(color: Colors.red),
+                ),
+              );
+            }
+
+            // Set the financial data from the stream
+            _financialData = snapshot.data;
+
+            return _buildBody(screenWidth, screenHeight);
+          },
+        ),
       ),
     );
   }
 
   Widget _buildBody(double screenWidth, double screenHeight) {
-    if (_isLoading) {
-      return _buildLoadingIndicator();
-    }
-
-    if (_errorMessage != null) {
-      return _buildErrorWidget();
-    }
-
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -154,7 +188,9 @@ class _SpendingSectionState extends State<SpendingSection>
       ),
       child: RefreshIndicator(
         color: primaryColor,
-        onRefresh: _fetchFinancialData,
+        onRefresh: () async {
+          // You can add any additional refresh logic here if needed
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -186,40 +222,6 @@ class _SpendingSectionState extends State<SpendingSection>
     );
   }
 
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            color: accentColor,
-            size: 60,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _errorMessage!,
-            style: GoogleFonts.openSans(
-              color: textColor,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _fetchFinancialData,
-            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-            child: Text(
-              'Retry',
-              style: GoogleFonts.openSans(color: Colors.white),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
   Widget _buildFinancialSummary(double screenWidth, double screenHeight) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -247,21 +249,10 @@ class _SpendingSectionState extends State<SpendingSection>
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(15.0),
+          padding: const EdgeInsets.only(top: 35.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10.0, left: 10),
-                child: Text(
-                  'Expense Breakdown',
-                  style: GoogleFonts.roboto(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal[700],
-                  ),
-                ),
-              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -288,12 +279,10 @@ class _SpendingSectionState extends State<SpendingSection>
     double amount = 0;
 
     if (type == 'Balance' && _financialData?['balance'] != null) {
-      amount = _financialData!['balance']['amount']?.toDouble() ??
-          0.0; // Convert to double
+      amount = _financialData!['balance']['amount']?.toDouble() ?? 0.0;
     } else if (type == 'Expense' && _financialData?['expenses'] != null) {
       amount = (_financialData!['expenses'] as List).fold(0.0, (sum, doc) {
-        return sum +
-            (doc['amount']?.toDouble() ?? 0.0); // Ensure conversion to double
+        return sum + (doc['amount']?.toDouble() ?? 0.0);
       });
     }
 
@@ -335,14 +324,12 @@ class _SpendingSectionState extends State<SpendingSection>
     final expenses = _financialData?['expenses'] ?? [];
 
     double totalExpenses = expenses.fold(0.0, (sum, doc) {
-      return sum +
-          (doc['amount']?.toDouble() ?? 0.0); // Ensure double conversion
+      return sum + (doc['amount']?.toDouble() ?? 0.0);
     });
 
     int transactionCount = expenses.length;
-    double averageExpense = transactionCount > 0
-        ? totalExpenses / transactionCount
-        : 0.0; // Avoid integer division
+    double averageExpense =
+        transactionCount > 0 ? totalExpenses / transactionCount : 0.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 500),
@@ -371,7 +358,7 @@ class _SpendingSectionState extends State<SpendingSection>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Monthly Insights',
+                  'Daily Insights',
                   style: GoogleFonts.roboto(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -589,7 +576,11 @@ class _SpendingSectionState extends State<SpendingSection>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      child: SpendingChart(userId: userId!, selectedDate: formattedDate),
+      child: SpendingChart(
+        userId: userId!,
+        selectedDate: formattedDate,
+        key: ValueKey(formattedDate),
+      ),
     );
   }
 
